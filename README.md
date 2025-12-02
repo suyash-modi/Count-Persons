@@ -16,12 +16,10 @@ Multi-camera people detection and re-identification demo built with Flask, OpenV
 
 ## Quick Start
 1. (Optional) Create/activate virtualenv.
-2. Copy `.env.example` to `.env` (or edit existing `.env`) and set values:
+2. Create or edit `.env` and set values:
    ```
    MONGO_URI=mongodb://localhost:27017
    DB_NAME=person_analytics
-   REGISTRY_MAX_AGE_SEC=86400
-   REGISTRY_MAX_SIZE=20000
    FRAME_PROCESS_INTERVAL=1
    ALLOW_STREAM_RESTART=true
    ```
@@ -32,7 +30,6 @@ Multi-camera people detection and re-identification demo built with Flask, OpenV
 - `MONGO_URI`, `DB_NAME`: destination for hourly/daily snapshots.
 - `FRAME_PROCESS_INTERVAL`: run detection every N frames per camera (1 = every frame).
 - `ALLOW_STREAM_RESTART`, `RESTART_BACKOFF_SECONDS`: auto-retry live streams when they drop.
-- `REGISTRY_MAX_AGE_SEC`, `REGISTRY_MAX_SIZE`: bound re-ID memory footprint; raise to keep identities longer.
 
 ## Metrics & Reporting
 - `/video_feed`: MJPEG stream showing merged camera view with IDs and FPS.
@@ -42,5 +39,5 @@ Multi-camera people detection and re-identification demo built with Flask, OpenV
 ## Scalability Notes
 - Each camera has its own reader thread; finished demo videos are removed automatically, live sources restart after failures.
 - Processing still scales roughly linearly with camera count; use `FRAME_PROCESS_INTERVAL`, lower FPS, or hardware accelerators for bigger deployments.
-- Registry and embedding buffers prune stale entries to keep matching fast; tune the env vars to match your retention needs.
+- The re-ID registry now grows freely during the day and is cleared once at midnight; monitor memory usage if you track very large crowds.
 - Ensure MongoDB is reachable; otherwise snapshot threads will log insert errors but keep the app running.

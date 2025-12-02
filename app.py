@@ -24,8 +24,6 @@ COUNT_ONCE_PER_SESSION = True
 FRAME_PROCESS_INTERVAL = max(1, int(os.getenv("FRAME_PROCESS_INTERVAL", "1")))
 ALLOW_STREAM_RESTART = os.getenv("ALLOW_STREAM_RESTART", "true").lower() == "true"
 RESTART_BACKOFF_SECONDS = float(os.getenv("RESTART_BACKOFF_SECONDS", "5.0"))
-REGISTRY_MAX_AGE_SEC = float(os.getenv("REGISTRY_MAX_AGE_SEC", "600"))
-REGISTRY_MAX_SIZE = int(os.getenv("REGISTRY_MAX_SIZE", "5000"))
 
 DETECTION_CONFIDENCE_THRESHOLD = 0.6
 MIN_PERSON_WIDTH = 30
@@ -136,20 +134,6 @@ def update_registry(embedding):
         next_global_id += 1
         registry.append({"id": new_id, "emb": embedding.copy(), "last_seen": current_time})
         return new_id, True
-
-def prune_registry(current_time=None):
-    """Remove stale or excess registry entries to control memory/CPU."""
-    if current_time is None:
-        current_time = time.time()
-    with registry_lock:
-        original_len = len(registry)
-        registry[:] = [entry for entry in registry if current_time - entry["last_seen"] <= REGISTRY_MAX_AGE_SEC]
-        if len(registry) > REGISTRY_MAX_SIZE:
-            registry.sort(key=lambda e: e["last_seen"], reverse=True)
-            registry[:] = registry[:REGISTRY_MAX_SIZE]
-        if len(registry) != original_len:
-            print(f"[Registry] Pruned {original_len - len(registry)} stale entries; active={len(registry)}")
-
 
 # ==================== DETECTION & RE-IDENTIFICATION ====================
 def detect_and_reid(frame):
@@ -462,8 +446,6 @@ def process_new_entries(per_cam_results):
                     if pid in entries and entries[pid].get("is_group_member", False):
                         continue
                 register_entry(pid, cam_idx, is_group_member=False, embedding=embedding)
-
-    prune_registry(current_time)
 
 def register_entry(pid, cam_idx, is_group_member=False, embedding=None):
     """
